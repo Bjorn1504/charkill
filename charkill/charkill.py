@@ -41,7 +41,7 @@ logger = logging.getLogger("Modmail.CharacterKill")
 # =============================================================================
 
 # Channel the finished contracts are posted to (right click channel -> Copy Channel ID).
-SUBMIT_CHANNEL_ID = 0
+SUBMIT_CHANNEL_ID = 1507936269521391847
 
 # Modmail permission level needed to run the command.
 # (You can also override it in Discord with `?perms add override ck <role>`.)
