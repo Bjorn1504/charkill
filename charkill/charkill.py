@@ -596,7 +596,7 @@ class CharacterKill(commands.Cog):
     # -- command --------------------------------------------------------------
 
     @commands.command(name="ck")
-    @checks.has_permission(COMMAND_PERMISSION)
+    @checks.has_permissions(COMMAND_PERMISSION)
     async def ck(self, ctx: commands.Context, user: discord.User):
         """
         Send a Character Kill contract to a user's DMs.
