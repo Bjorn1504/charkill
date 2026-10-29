@@ -62,9 +62,12 @@ EMBED_THUMBNAIL = "https://cdn.discordapp.com/attachments/1506363914550771742/15
 # Only the ENTRY templates also have:
 #   {questions}  the question / answer block (see QUESTION_FORMAT below)
 #
-# Mentions and per-reader timezones only work inside the entry (embed
-# description) of the SUBMITTED embed. Everywhere else Discord cannot render
-# them, so {user} / {moderator} become plain names and {time} becomes UTC.
+# {user} and {moderator} are NEVER mentions. They always show as
+# "username (ID)", e.g.  3nrique_puravida (553361894115770386)
+#
+# {time} is plain UTC text everywhere, except inside the entry of the SUBMITTED
+# embed, where it is shown in each reader's own timezone (Discord can't do that
+# in titles or footers).
 
 # DM sent to the user
 DM_TITLE = "Barons Motorcycle Club - Character Kill Contract"
@@ -74,7 +77,7 @@ DM_FOOTER = "Sent by {moderator} on {time}. DO NOT REPLY TO THIS MESSAGE."
 # Embed posted to SUBMIT_CHANNEL_ID once the user presses Send
 SUBMIT_TITLE = "Barons Motorcycle Club - Character Kill Contract"
 SUBMIT_ENTRY = "{questions}\n**Answer from** {user}"
-SUBMIT_FOOTER = "Sent by {user} at {time}"
+SUBMIT_FOOTER = "Sent by {moderator} at {time}"
 
 # How each question is written inside {questions}. Placeholders: {question} {answer}
 QUESTION_FORMAT = "**{question}**\n{answer}\n"
@@ -236,19 +239,16 @@ def _questions_block(answers: Dict[str, str]) -> str:
     return "\n".join(parts)
 
 
-def _placeholders(rec: Dict[str, Any], *, rich: bool, option: str, when: int) -> Dict[str, str]:
-    if rich:
-        return {
-            "user": f"<@{rec['user_id']}>",
-            "moderator": f"<@{rec['moderator_id']}>",
-            "time": f"<t:{when}:f>",  # rendered in each reader's own timezone
-            "option": option,
-        }
-    stamp = datetime.fromtimestamp(when, tz=timezone.utc).strftime(TIME_FORMAT_UTC)
+def _placeholders(rec: Dict[str, Any], *, local_time: bool, option: str, when: int) -> Dict[str, str]:
+    if local_time:
+        time_text = f"<t:{when}:f>"  # rendered in each reader's own timezone
+    else:
+        time_text = datetime.fromtimestamp(when, tz=timezone.utc).strftime(TIME_FORMAT_UTC)
     return {
-        "user": rec["user_name"],
-        "moderator": rec["moderator_name"],
-        "time": stamp,
+        # never a mention: "username (ID)"
+        "user": f"{rec['user_name']} ({rec['user_id']})",
+        "moderator": f"{rec['moderator_name']} ({rec['moderator_id']})",
+        "time": time_text,
         "option": option,
     }
 
@@ -260,13 +260,13 @@ def _build_embed(
     title: str,
     entry: str,
     footer: str,
-    rich_entry: bool,
+    local_time_entry: bool,
     option: str,
     when: int,
 ) -> discord.Embed:
-    # Titles and footers can never show mentions / local timestamps -> plain text.
-    plain = _placeholders(rec, rich=False, option=option, when=when)
-    entry_values = _placeholders(rec, rich=rich_entry, option=option, when=when)
+    # Titles and footers can never show local timestamps -> UTC text.
+    plain = _placeholders(rec, local_time=False, option=option, when=when)
+    entry_values = _placeholders(rec, local_time=local_time_entry, option=option, when=when)
     entry_values["questions"] = _questions_block(answers)
 
     embed = discord.Embed(
@@ -287,7 +287,7 @@ def build_dm_embed(rec: Dict[str, Any], answers: Dict[str, str]) -> discord.Embe
         title=DM_TITLE,
         entry=DM_ENTRY,
         footer=DM_FOOTER,
-        rich_entry=False,  # DM is plain text only
+        local_time_entry=False,  # DM shows {time} in UTC
         option="",
         when=rec["created_at"],
     )
@@ -300,7 +300,7 @@ def build_submit_embed(rec: Dict[str, Any], answers: Dict[str, str], when: int) 
         title=SUBMIT_TITLE,
         entry=SUBMIT_ENTRY,
         footer=SUBMIT_FOOTER,
-        rich_entry=True,  # mentions + local-time stamps work in the description
+        local_time_entry=True,  # {time} in the description shows in each reader's timezone
         option=BUTTON_SEND,
         when=when,
     )
@@ -618,9 +618,9 @@ class CharacterKill(commands.Cog):
 
         rec: Dict[str, Any] = {
             "user_id": user.id,
-            "user_name": user.display_name,
+            "user_name": user.name,
             "moderator_id": ctx.author.id,
-            "moderator_name": ctx.author.display_name,
+            "moderator_name": ctx.author.name,
             "created_at": int(time.time()),
             "answers": {},
         }
