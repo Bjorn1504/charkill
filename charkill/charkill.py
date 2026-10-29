@@ -115,24 +115,46 @@ TEXT_INACTIVE = "This contract is no longer active."
 # Max 25 questions.
 QUESTIONS: List[Dict[str, Any]] = [
     {
-        "id": "character_name",
-        "label": "Character Name",
-        "type": "short",
-        "placeholder": "Full name of the character",
-        "max_length": 100,
+        "id": "question_1",
+        "label": "Do you understand that by signing this you understand that your contract can be pulled at anytime?",
+        "type": "dropdown",
+        "options": ["Yes, I understand", "No, I do not understand"],
     },
     {
-        "id": "reason",
-        "label": "Reason for the Character Kill",
-        "type": "long",
-        "placeholder": "Explain what led to this contract.",
-        "max_length": 1000,
+        "id": "question_2",
+        "label": "Do you understand by signing this you are subjecting yourself to anything and everything in RP?",
+        "type": "dropdown",
+        "options": ["Yes, I understand", "No, I do not understand"],
     },
     {
-        "id": "consent",
-        "label": "Do you accept this Character Kill?",
+        "id": "question_3",
+        "label": "Will you stand beside your brothers when times are good and when they turn bad?",
         "type": "dropdown",
         "options": ["Yes, I accept", "No, I do not accept"],
+    },
+    {
+        "id": "question_4",
+        "label": "Do you agree to follow orders from the club's leadership?",
+        "type": "dropdown",
+        "options": ["Yes, I agree", "No, I do not agree"],
+    },
+    {
+        "id": "question_5",
+        "label": "Do you understand that breaking club laws carries consequences including death?",
+        "type": "dropdown",
+        "options": ["Yes, I understand", "No, I do not understand"],
+    },
+    {
+        "id": "question_6",
+        "label": "Do you understand that these consequences can include your character's death/execution in RP?",
+        "type": "dropdown",
+        "options": ["Yes, I understand", "No, I do not understand"],
+    },
+    {
+        "id": "question_7",
+        "label": "Do you understand that by signing this you understand that your contract can be pulled at anytime?",
+        "type": "dropdown",
+        "options": ["Yes, I understand", "No, I do not understand"],
     },
     {
         "id": "signature",
