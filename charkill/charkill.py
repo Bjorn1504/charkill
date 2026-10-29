@@ -47,6 +47,13 @@ SUBMIT_CHANNEL_ID = 1507936269521391847
 # (You can also override it in Discord with `?perms add override ck <role>`.)
 COMMAND_PERMISSION = PermissionLevel.MODERATOR
 
+# Clean-up in the channel where the command was used:
+#   - the command message itself is deleted right away (needs Manage Messages)
+#   - the bot's reply (success or error) is deleted after this many seconds
+#     (set RESPONSE_DELETE_AFTER to None to keep the reply)
+DELETE_COMMAND_MESSAGE = True
+RESPONSE_DELETE_AFTER = 30
+
 # ---- Look of both embeds ----------------------------------------------------
 EMBED_COLOR = 0xA68937  # #a68937
 EMBED_THUMBNAIL = "https://cdn.discordapp.com/attachments/1506363914550771742/1556464154146242642/2.png"
@@ -615,6 +622,10 @@ class CharacterKill(commands.Cog):
     def _error(self, text: str) -> discord.Embed:
         return discord.Embed(description=text, colour=self.bot.error_color)
 
+    async def _reply(self, ctx: commands.Context, embed: discord.Embed) -> None:
+        """Reply in the command channel and remove the reply after a short delay."""
+        await ctx.send(embed=embed, delete_after=RESPONSE_DELETE_AFTER)
+
     # -- command --------------------------------------------------------------
 
     @commands.command(name="ck")
@@ -625,16 +636,23 @@ class CharacterKill(commands.Cog):
 
         Usage: ck <@user>
         """
+        if DELETE_COMMAND_MESSAGE:
+            try:
+                await ctx.message.delete()
+            except discord.HTTPException:
+                pass  # already gone, or the bot lacks Manage Messages here
+
         if user.bot:
-            await ctx.send(embed=self._error("You can't send a contract to a bot."))
+            await self._reply(ctx, self._error("You can't send a contract to a bot."))
             return
 
         if await self.get_submit_channel() is None:
-            await ctx.send(
-                embed=self._error(
+            await self._reply(
+                ctx,
+                self._error(
                     "The submission channel isn't set up. Set `SUBMIT_CHANNEL_ID` in the plugin "
                     "to a channel the bot can see and post in."
-                )
+                ),
             )
             return
 
@@ -650,10 +668,10 @@ class CharacterKill(commands.Cog):
         try:
             message = await user.send(embed=build_dm_embed(rec, {}), view=ContractPanel(self))
         except discord.Forbidden:
-            await ctx.send(embed=self._error(f"I can't DM {user.mention}. Their DMs are closed."))
+            await self._reply(ctx, self._error(f"I can't DM {user.mention}. Their DMs are closed."))
             return
         except discord.HTTPException as exc:
-            await ctx.send(embed=self._error(f"Couldn't send the contract: `{exc}`"))
+            await self._reply(ctx, self._error(f"Couldn't send the contract: `{exc}`"))
             return
 
         rec["_id"] = message.id
@@ -665,14 +683,15 @@ class CharacterKill(commands.Cog):
                 await message.delete()
             except discord.HTTPException:
                 pass
-            await ctx.send(embed=self._error("Couldn't save the contract to the database. Nothing was sent."))
+            await self._reply(ctx, self._error("Couldn't save the contract to the database. Nothing was sent."))
             return
 
-        await ctx.send(
-            embed=discord.Embed(
+        await self._reply(
+            ctx,
+            discord.Embed(
                 description=f"Character Kill contract sent to {user.mention}'s DMs.",
                 colour=self.bot.main_color,
-            )
+            ),
         )
 
 
